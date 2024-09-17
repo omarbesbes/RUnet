@@ -185,7 +185,7 @@ vgg19 = models.vgg19(weights=VGG19_Weights.DEFAULT)
 vgg19.to(device)
 
 loss_f = nn.MSELoss()
-optimizer = torch.optim.Adam(my_RUnet.parameters(),lr=1e-5)
+optimizer = torch.optim.Adam(my_RUnet.parameters())
 
 def train(model,train_loader,loss_f,optimizer,device):
 
@@ -213,7 +213,9 @@ def test(model,loader,loss_f,optimizer,device):
             with torch.autocast(device_type=device.type, dtype=torch.float16):
               img,label = img.to(device),label.to(device)
               y_pred = model(img)
-              tot_loss+=loss_f(vgg19.features(label),vgg19.features(y_pred)).item()*img.shape[0]
+              current_loss = loss_f(vgg19.features(label),vgg19.features(y_pred)).item()*img.shape[0]
+              print(current_loss)
+              tot_loss+=current_loss
               N+=img.shape[0]
 
         tot_loss/=N
