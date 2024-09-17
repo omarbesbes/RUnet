@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 from PIL import Image
 from pathlib import Path
+from torchvision.models import VGG19_Weights
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
@@ -45,8 +47,8 @@ class DataTransformer(torch.utils.data.Dataset):
 train_dataset = DataTransformer(training_data_list,transforms.ToTensor())
 test_dateset = DataTransformer(testing_data_list,transforms.ToTensor())
 
-num_threads = 2
-batch_size = 128
+num_threads = 0
+batch_size = 8
 
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=True,num_workers=num_threads,generator=torch.Generator(device=device))
 test_loader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=False,num_workers=num_threads,generator=torch.Generator(device=device))
@@ -63,23 +65,23 @@ class RUnet(nn.Module):
                             self.add_down_block(64,3,64),
                             self.add_down_block(64,3,64),
                             self.add_down_block(64,3,128),
-                            nn.Dropout(p=0.5),
+                            nn.Dropout(p=0.1),
                             nn.Conv2d(64,128,1,1,padding="same")]
         self.down_block2 = [self.add_down_block(128,3,128),
                             self.add_down_block(128,3,128),
                             self.add_down_block(128,3,128),
                             self.add_down_block(128,3,256),
-                            nn.Dropout(p=0.5),
+                            nn.Dropout(p=0.1),
                             nn.Conv2d(128,256,1,1,padding="same")]
         self.down_block3 = [self.add_down_block(256,3,256),
                             self.add_down_block(256,3,256),
                             self.add_down_block(256,3,256),
                             self.add_down_block(256,3,512),
-                            nn.Dropout(p=0.5),
+                            nn.Dropout(p=0.1),
                             nn.Conv2d(256,512,1,1,padding="same")]
         self.down_block4 = [self.add_down_block(512,3,512),
                             self.add_down_block(512,3,512),
-                            nn.Dropout(p=0.5),
+                            nn.Dropout(p=0.1),
                             nn.Sequential(nn.BatchNorm2d(512),nn.ReLU(inplace=True))]
 
         self.k3n1024 = nn.Sequential(nn.Conv2d(512,1024,3,stride=1,padding="same"),
@@ -179,11 +181,11 @@ class RUnet(nn.Module):
 my_RUnet = RUnet()
 my_RUnet.to(device)
 
-vgg19 = models.vgg19(pretrained=True)
+vgg19 = models.vgg19(weights=VGG19_Weights.DEFAULT)
 vgg19.to(device)
 
 loss_f = nn.MSELoss()
-optimizer = torch.optim.Adam(my_RUnet.parameters())
+optimizer = torch.optim.Adam(my_RUnet.parameters(),lr=1e-5)
 
 def train(model,train_loader,loss_f,optimizer,device):
 
