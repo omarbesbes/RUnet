@@ -44,15 +44,16 @@ class DataTransformer(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.base)
 
-train_dataset = DataTransformer(training_data_list,transforms.ToTensor())
-test_dateset = DataTransformer(testing_data_list,transforms.ToTensor())
+train_dataset = DataTransformer(training_data_list[:4],transforms.ToTensor())
+test_dateset = DataTransformer(testing_data_list[:4],transforms.ToTensor())
 
 num_threads = 0
-batch_size = 8
+batch_size = 1
 
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=True,num_workers=num_threads,generator=torch.Generator(device=device))
 test_loader = torch.utils.data.DataLoader(dataset=train_dataset,batch_size=batch_size,shuffle=False,num_workers=num_threads,generator=torch.Generator(device=device))
 
+#print(next(iter(train_loader))[0])
 
 class RUnet(nn.Module):
     def __init__(self):
@@ -119,9 +120,18 @@ class RUnet(nn.Module):
                              nn.BatchNorm2d(n))
 
     def forward(self,x):
+        print("-------------Start of batch----------")
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
         x=self.k7n64(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
         x_5=x
         x=self.pooling(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
         for i in range(len(self.down_block1)-1):
             x_ = self.down_block1[i](x)
             if x.shape[1]!=x_.shape[1]:
@@ -129,6 +139,9 @@ class RUnet(nn.Module):
             x= x + x_
         x_4=x
         x=self.pooling(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         for i in range(len(self.down_block2)-1):
             x_ = self.down_block2[i](x)
@@ -137,6 +150,9 @@ class RUnet(nn.Module):
             x= x + x_
         x_3=x
         x=self.pooling(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         for i in range(len(self.down_block3)-1):
             x_ = self.down_block3[i](x)
@@ -145,6 +161,9 @@ class RUnet(nn.Module):
             x= x + x_
         x_2=x
         x=self.pooling(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         for i in range(len(self.down_block4)):
             if i!=(len(self.down_block4)-1):
@@ -155,27 +174,45 @@ class RUnet(nn.Module):
         x_1=x
         x=self.k3n1024(x)
         x=self.k3n512(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         x=torch.concat((x,x_1),dim=1)
         x=self.up_block1(x)
         x=self.pixel_shuffle(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         x=torch.concat((x,x_2),dim=1)
         x=self.up_block2(x)
         x=self.pixel_shuffle(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         x=torch.concat((x,x_3),dim=1)
         x=self.up_block3(x)
         x=self.pixel_shuffle(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         x=torch.concat((x,x_4),dim=1)
         x=self.up_block4(x)
         x=self.pixel_shuffle(x)
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
 
         x=torch.concat((x,x_5),dim=1)
         x=self.k3n99(x)
         x=self.k1n3(x)
-
+        print(x,x.shape)
+        print(x.min().item(),x.max().item(),x.mean().item(),x.std().item())
+        print("********************")
+        print("-------------End of batch----------")
         return x
 
 my_RUnet = RUnet()
@@ -185,7 +222,7 @@ vgg19 = models.vgg19(weights=VGG19_Weights.DEFAULT)
 vgg19.to(device)
 
 loss_f = nn.MSELoss()
-optimizer = torch.optim.Adam(my_RUnet.parameters())
+optimizer = torch.optim.Adam(my_RUnet.parameters(),weight_decay=1e-5)
 
 def train(model,train_loader,loss_f,optimizer,device):
 
