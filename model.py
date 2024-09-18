@@ -181,8 +181,6 @@ class RUnet(nn.Module):
 
 my_RUnet = RUnet()
 my_RUnet.to(device)
-my_RUnet = RUnet()
-my_RUnet.to(device)
 
 vgg19 = models.vgg19(weights=VGG19_Weights.DEFAULT)
 vgg19.to(device)
